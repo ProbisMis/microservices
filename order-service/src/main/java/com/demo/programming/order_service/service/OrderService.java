@@ -5,8 +5,8 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 
+import com.demo.programming.order_service.client.InventoryClient;
 import com.demo.programming.order_service.dto.InventoryResponse;
 import com.demo.programming.order_service.dto.OrderLineItemsDto;
 import com.demo.programming.order_service.dto.OrderRequest;
@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final WebClient.Builder webClientBuilder;
+    private final InventoryClient inventoryClient;
 
     @Transactional
     public void placeOrder(OrderRequest orderRequest) {
@@ -35,23 +35,15 @@ public class OrderService {
             .forEach(orderLineItems -> order.getOrderLineItemsList().add(orderLineItems));
         
         
-        //Check inventory service here!
-        //By default asynchronous, but we are making it synchronous by using block() method
-        //TODO: Change URL to save memory address or use service discovery
-        InventoryResponse[] result = webClientBuilder.build().get()
-            .uri("http://localhost:8082/api/inventory",
-                 uriBuilder -> uriBuilder.queryParam("skuCode",
-                     order.getOrderLineItemsList()
-                         .stream()
-                         .map(OrderLineItems::getSkuCode)
-                         .toList()
-                 ).build()
-            )
-            .retrieve()
-            .bodyToMono(InventoryResponse[].class)
-            .block();
+        //Check inventory service using FeignClient
+        var skuCodes = order.getOrderLineItemsList()
+            .stream()
+            .map(OrderLineItems::getSkuCode)
+            .toList();
         
-        if (result.length > 0 && Arrays.stream(result).allMatch(InventoryResponse::isInStock)) 
+        var result = inventoryClient.isInStock(skuCodes);
+        
+        if (result != null && !result.isEmpty() && result.stream().allMatch(InventoryResponse::isInStock)) 
             orderRepository.save(order);
         else
             throw new IllegalArgumentException("Product is not in stock, please try again later");
