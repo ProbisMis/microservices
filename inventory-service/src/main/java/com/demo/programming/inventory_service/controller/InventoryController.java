@@ -1,10 +1,14 @@
 package com.demo.programming.inventory_service.controller;
 
+import java.util.List;
+
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.demo.programming.inventory_service.dto.InventoryResponse;
 import com.demo.programming.inventory_service.service.InventoryService;
 
 import lombok.RequiredArgsConstructor;
@@ -18,13 +22,7 @@ public class InventoryController {
 
     @GetMapping
     @ResponseStatus(org.springframework.http.HttpStatus.OK)
-    public String checkInventory() {
-        return "Inventory service is up and running!";
-    }
-
-    @GetMapping("/{sku-code}")
-    @ResponseStatus(org.springframework.http.HttpStatus.OK)
-    public boolean isSkuExists(@PathVariable("sku-code") String skuCode) {
+    public List<InventoryResponse> isSkuExists(@RequestParam("sku-code") List<String> skuCode) {
         return inventoryService.isInStock(skuCode);
     }
 }

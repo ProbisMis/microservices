@@ -1,8 +1,12 @@
 package com.demo.programming.inventory_service.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
 
-public interface InventoryRepository extends JpaRepository<com.demo.programming.inventory_service.model.Inventory, Long> {
-    com.demo.programming.inventory_service.model.Inventory findBySkuCode(String skuCode);
+import org.springframework.data.jpa.repository.JpaRepository;
+import com.demo.programming.inventory_service.model.Inventory;
+
+public interface InventoryRepository extends JpaRepository<Inventory, Long> {
+    Inventory findBySkuCode(String skuCode);
+    List<Inventory> findBySkuCodeIn(List<String> skuCode);
 
 }
