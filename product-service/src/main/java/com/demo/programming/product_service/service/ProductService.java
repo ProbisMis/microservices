@@ -1,7 +1,6 @@
 package com.demo.programming.product_service.service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -18,11 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProductService {
 
-    
     private final ProductRepository productRepository;
 
     public void createProduct(ProductRequest productRequest) {
-        // Implementation for creating a product
         Product product = Product.builder()
                 .name(productRequest.getName())
                 .description(productRequest.getDescription())
@@ -31,13 +28,40 @@ public class ProductService {
 
         productRepository.save(product);
         log.info("Product {} is saved", product.getId());
-        
     }
 
     public List<ProductResponse> getAllProducts() {
-        List<Product> products = productRepository.findAll().stream()
-            .collect(Collectors.toList());
-        return products.stream().map(this::mapToProductResponse).toList();
+        return productRepository.findAll().stream()
+                .map(this::mapToProductResponse)
+                .toList();
+    }
+
+    public ProductResponse getProductById(String id) {
+        return productRepository.findById(id)
+                .map(this::mapToProductResponse)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found with id: " + id));
+    }
+
+    public ProductResponse updateProduct(String id, ProductRequest productRequest) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found with id: " + id));
+
+        product.setName(productRequest.getName());
+        product.setDescription(productRequest.getDescription());
+        product.setPrice(productRequest.getPrice());
+
+        Product updatedProduct = productRepository.save(product);
+        log.info("Product {} is updated", updatedProduct.getId());
+
+        return mapToProductResponse(updatedProduct);
+    }
+
+    public void deleteProduct(String id) {
+        if (!productRepository.existsById(id)) {
+            throw new IllegalArgumentException("Product not found with id: " + id);
+        }
+        productRepository.deleteById(id);
+        log.info("Product {} is deleted", id);
     }
 
     private ProductResponse mapToProductResponse(Product product) {

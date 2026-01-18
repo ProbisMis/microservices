@@ -8,7 +8,9 @@
       "Bash(curl:*)",
       "Bash(ping:*)",
       "Bash(powershell:*)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(mvn test:*)",
+      "Bash(mvn clean compile:*)"
     ]
   },
   "hooks": {
