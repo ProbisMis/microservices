@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn clean package:*)",
+      "Bash(docker compose:*)",
+      "Bash(timeout:*)",
+      "Bash(findstr:*)",
+      "Bash(curl:*)",
+      "Bash(ping:*)",
+      "Bash(powershell:*)",
+      "Bash(docker exec:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File .claude/hooks/session-start.ps1",
+            "timeout": 60,
+            "statusMessage": "Checking Docker services..."
+          }
+        ]
+      }
+    ]
+  }
+}

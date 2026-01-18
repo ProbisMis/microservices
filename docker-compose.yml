@@ -1,4 +1,5 @@
 services:
+  # Infrastructure Services
   mongodb:
     image: mongo:latest
     container_name: mongodb-container
@@ -10,6 +11,9 @@ services:
       MONGO_INITDB_DATABASE: mydatabase
     volumes:
       - mongo-data:/data/db
+    networks:
+      - microservices-network
+
   mysqldb:
     image: mysql:8.0
     container_name: mysql-container
@@ -21,6 +25,14 @@ services:
     volumes:
       - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./docker/mysql/data:/var/lib/mysql
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   keycloak-mysql:
     container_name: keycloak-mysql
     image: mysql:8.0
@@ -31,13 +43,16 @@ services:
       MYSQL_DATABASE: keycloak
       MYSQL_USER: keycloak
       MYSQL_PASSWORD: password
+    networks:
+      - microservices-network
+
   keycloak:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:24.0.1
-    command: [ "start-dev", "--import-realm" ]
+    command: ["start-dev", "--import-realm"]
     environment:
       DB_VENDOR: MYSQL
-      DB_ADDR: mysql
+      DB_ADDR: keycloak-mysql
       DB_DATABASE: keycloak
       DB_USER: keycloak
       DB_PASSWORD: password
@@ -49,5 +64,101 @@ services:
       - ./docker/keycloak/realms/:/opt/keycloak/data/import/
     depends_on:
       - keycloak-mysql
+    networks:
+      - microservices-network
+
+  # Discovery Service (Eureka) - Must start first
+  discovery-service:
+    build:
+      context: ./discovery-service
+      dockerfile: Dockerfile
+    container_name: discovery-service
+    ports:
+      - "8761:8761"
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8761/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  # Product Service
+  product-service:
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      mongodb:
+        condition: service_started
+      discovery-service:
+        condition: service_healthy
+    networks:
+      - microservices-network
+
+  # Inventory Service
+  inventory-service:
+    build:
+      context: ./inventory-service
+      dockerfile: Dockerfile
+    container_name: inventory-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysqldb:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    networks:
+      - microservices-network
+
+  # Order Service
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysqldb:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_started
+    networks:
+      - microservices-network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "9000:9000"
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      inventory-service:
+        condition: service_started
+    networks:
+      - microservices-network
+
 volumes:
   mongo-data:
+
+networks:
+  microservices-network:
+    driver: bridge
