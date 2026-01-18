@@ -1,5 +1,9 @@
 package com.demo.programming.product_service.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,21 +24,29 @@ import org.springframework.http.HttpStatus;
 @RestController
 @RequestMapping("api/product")
 @RequiredArgsConstructor
+@Tag(name = "Product", description = "Product management APIs")
 public class ProductController {
 
     private final ProductService productService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Create a new product", description = "Creates a new product in the catalog")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Product created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input")
+    })
     public void createProduct(@RequestBody ProductRequest productRequest) {
-        // Implementation for creating a product
         productService.createProduct(productRequest);
     }
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get all products", description = "Retrieves a list of all products in the catalog")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved products")
+    })
     public List<ProductResponse> getAllProducts() {
-        // Implementation for retrieving all products
         return productService.getAllProducts();
     }
 

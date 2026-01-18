@@ -1,5 +1,11 @@
 package com.demo.programming.inventory_service.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,13 +22,20 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/inventory")
 @RequiredArgsConstructor
+@Tag(name = "Inventory", description = "Inventory management APIs")
 public class InventoryController {
 
     private final InventoryService inventoryService;
 
     @GetMapping
     @ResponseStatus(org.springframework.http.HttpStatus.OK)
-    public List<InventoryResponse> isSkuExists(@RequestParam("sku-code") List<String> skuCode) {
+    @Operation(summary = "Check inventory stock", description = "Checks if products with the given SKU codes are in stock")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved inventory status")
+    })
+    public List<InventoryResponse> isSkuExists(
+            @Parameter(description = "List of SKU codes to check", required = true)
+            @RequestParam("sku-code") List<String> skuCode) {
         return inventoryService.isInStock(skuCode);
     }
 }
