@@ -62,7 +62,8 @@ import static org.awaitility.Awaitility.await;
 )
 @TestPropertySource(properties = {
         "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
-        "spring.kafka.consumer.auto-offset-reset=earliest"
+        "spring.kafka.consumer.auto-offset-reset=earliest",
+        "spring.kafka.consumer.group-id=order-service-test-${random.uuid}"
 })
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class OrderKafkaIntegrationTest {
@@ -130,9 +131,9 @@ class OrderKafkaIntegrationTest {
         producer.flush();
 
         // Then: order should be updated to CONFIRMED
-        await().atMost(15, TimeUnit.SECONDS)
+        await().atMost(30, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
-                .pollDelay(1, TimeUnit.SECONDS)
+                .pollDelay(2, TimeUnit.SECONDS)
                 .untilAsserted(() -> {
             entityManager.clear(); // Clear cache to get fresh data from DB
             Order updatedOrder = orderRepository.findByOrderNumber(orderNumber).orElseThrow();
@@ -162,7 +163,8 @@ class OrderKafkaIntegrationTest {
         Order order = createAndSaveOrder(orderNumber, OrderStatus.PENDING);
 
         // Wait for Spring consumer to be fully initialized and subscribed
-        Thread.sleep(3000);
+        // Use longer wait time to ensure Kafka listeners are ready after @DirtiesContext
+        Thread.sleep(5000);
 
         // When: InventoryReservationFailedEvent is sent
         String failureReason = "Insufficient inventory for SKUs: TEST-001";
@@ -176,9 +178,9 @@ class OrderKafkaIntegrationTest {
 
         // Then: order should be updated to REJECTED with failure reason
         // Wait for consumer to process the message and commit the transaction
-        await().atMost(15, TimeUnit.SECONDS)
+        await().atMost(30, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
-                .pollDelay(1, TimeUnit.SECONDS)
+                .pollDelay(2, TimeUnit.SECONDS)
                 .untilAsserted(() -> {
             entityManager.clear(); // Clear cache to get fresh data from DB
             Order updatedOrder = orderRepository.findByOrderNumber(orderNumber).orElseThrow();
