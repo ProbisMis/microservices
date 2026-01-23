@@ -150,9 +150,9 @@ class InventoryServiceTest {
         @DisplayName("Should return all in stock when all items have positive quantity")
         void shouldReturnAllInStockWhenAllItemsHavePositiveQuantity() {
             // Given
-            Inventory inventory1 = new Inventory(1L, "SKU-1", 50);
-            Inventory inventory2 = new Inventory(2L, "SKU-2", 100);
-            Inventory inventory3 = new Inventory(3L, "SKU-3", 25);
+            Inventory inventory1 = new Inventory(1L, "SKU-1", 50, 0);
+            Inventory inventory2 = new Inventory(2L, "SKU-2", 100, 0);
+            Inventory inventory3 = new Inventory(3L, "SKU-3", 25, 0);
 
             List<String> skuCodes = Arrays.asList("SKU-1", "SKU-2", "SKU-3");
             when(inventoryRepository.findBySkuCodeIn(skuCodes))
@@ -170,8 +170,8 @@ class InventoryServiceTest {
         @DisplayName("Should return all out of stock when all items have zero quantity")
         void shouldReturnAllOutOfStockWhenAllItemsHaveZeroQuantity() {
             // Given
-            Inventory inventory1 = new Inventory(1L, "SKU-EMPTY-1", 0);
-            Inventory inventory2 = new Inventory(2L, "SKU-EMPTY-2", 0);
+            Inventory inventory1 = new Inventory(1L, "SKU-EMPTY-1", 0, 0);
+            Inventory inventory2 = new Inventory(2L, "SKU-EMPTY-2", 0, 0);
 
             List<String> skuCodes = Arrays.asList("SKU-EMPTY-1", "SKU-EMPTY-2");
             when(inventoryRepository.findBySkuCodeIn(skuCodes))
@@ -190,11 +190,11 @@ class InventoryServiceTest {
         void shouldHandleLargeBatchOfSkuCodes() {
             // Given
             List<Inventory> inventories = Arrays.asList(
-                    new Inventory(1L, "SKU-1", 10),
-                    new Inventory(2L, "SKU-2", 20),
-                    new Inventory(3L, "SKU-3", 0),
-                    new Inventory(4L, "SKU-4", 30),
-                    new Inventory(5L, "SKU-5", 0)
+                    new Inventory(1L, "SKU-1", 10, 0),
+                    new Inventory(2L, "SKU-2", 20, 0),
+                    new Inventory(3L, "SKU-3", 0, 0),
+                    new Inventory(4L, "SKU-4", 30, 0),
+                    new Inventory(5L, "SKU-5", 0, 0)
             );
             List<String> skuCodes = Arrays.asList("SKU-1", "SKU-2", "SKU-3", "SKU-4", "SKU-5");
             when(inventoryRepository.findBySkuCodeIn(skuCodes)).thenReturn(inventories);
@@ -269,7 +269,7 @@ class InventoryServiceTest {
         void shouldCorrectlyMapSkuCodeInResponse() {
             // Given
             String expectedSkuCode = "SKU-SPECIAL-123";
-            Inventory inventory = new Inventory(1L, expectedSkuCode, 10);
+            Inventory inventory = new Inventory(1L, expectedSkuCode, 10, 0);
 
             List<String> skuCodes = Collections.singletonList(expectedSkuCode);
             when(inventoryRepository.findBySkuCodeIn(skuCodes))
@@ -289,8 +289,8 @@ class InventoryServiceTest {
             // Given - requesting 3 SKUs but only 2 exist in inventory
             List<String> skuCodes = Arrays.asList("SKU-EXISTS-1", "SKU-EXISTS-2", "SKU-NOT-EXISTS");
             List<Inventory> foundInventories = Arrays.asList(
-                    new Inventory(1L, "SKU-EXISTS-1", 10),
-                    new Inventory(2L, "SKU-EXISTS-2", 20)
+                    new Inventory(1L, "SKU-EXISTS-1", 10, 0),
+                    new Inventory(2L, "SKU-EXISTS-2", 20, 0)
             );
             when(inventoryRepository.findBySkuCodeIn(skuCodes)).thenReturn(foundInventories);
 
@@ -313,7 +313,7 @@ class InventoryServiceTest {
         @DisplayName("Should return false for quantity exactly zero")
         void shouldReturnFalseForQuantityExactlyZero() {
             // Given
-            Inventory zeroInventory = new Inventory(1L, "SKU-BOUNDARY-ZERO", 0);
+            Inventory zeroInventory = new Inventory(1L, "SKU-BOUNDARY-ZERO", 0, 0);
             List<String> skuCodes = Collections.singletonList("SKU-BOUNDARY-ZERO");
             when(inventoryRepository.findBySkuCodeIn(skuCodes))
                     .thenReturn(Collections.singletonList(zeroInventory));
@@ -329,7 +329,7 @@ class InventoryServiceTest {
         @DisplayName("Should return true for quantity exactly one")
         void shouldReturnTrueForQuantityExactlyOne() {
             // Given
-            Inventory oneInventory = new Inventory(1L, "SKU-BOUNDARY-ONE", 1);
+            Inventory oneInventory = new Inventory(1L, "SKU-BOUNDARY-ONE", 1, 0);
             List<String> skuCodes = Collections.singletonList("SKU-BOUNDARY-ONE");
             when(inventoryRepository.findBySkuCodeIn(skuCodes))
                     .thenReturn(Collections.singletonList(oneInventory));
@@ -345,7 +345,7 @@ class InventoryServiceTest {
         @DisplayName("Should handle negative quantity as out of stock")
         void shouldHandleNegativeQuantityAsOutOfStock() {
             // Given - edge case if negative quantities are possible
-            Inventory negativeInventory = new Inventory(1L, "SKU-NEGATIVE", -5);
+            Inventory negativeInventory = new Inventory(1L, "SKU-NEGATIVE", -5, 0);
             List<String> skuCodes = Collections.singletonList("SKU-NEGATIVE");
             when(inventoryRepository.findBySkuCodeIn(skuCodes))
                     .thenReturn(Collections.singletonList(negativeInventory));
@@ -367,9 +367,9 @@ class InventoryServiceTest {
         void shouldReturnAllInventoryItems() {
             // Given
             List<Inventory> inventories = Arrays.asList(
-                    new Inventory(1L, "SKU-001", 100),
-                    new Inventory(2L, "SKU-002", 50),
-                    new Inventory(3L, "SKU-003", 0)
+                    new Inventory(1L, "SKU-001", 100, 0),
+                    new Inventory(2L, "SKU-002", 50, 0),
+                    new Inventory(3L, "SKU-003", 0, 0)
             );
             when(inventoryRepository.findAll()).thenReturn(inventories);
 
@@ -440,7 +440,7 @@ class InventoryServiceTest {
                     .quantity(100)
                     .build();
 
-            Inventory savedInventory = new Inventory(1L, "NEW-SKU", 100);
+            Inventory savedInventory = new Inventory(1L, "NEW-SKU", 100, 0);
 
             when(inventoryRepository.findBySkuCode("NEW-SKU")).thenReturn(null);
             when(inventoryRepository.save(any(Inventory.class))).thenReturn(savedInventory);
@@ -485,7 +485,7 @@ class InventoryServiceTest {
                     .quantity(0)
                     .build();
 
-            Inventory savedInventory = new Inventory(1L, "EMPTY-SKU", 0);
+            Inventory savedInventory = new Inventory(1L, "EMPTY-SKU", 0, 0);
 
             when(inventoryRepository.findBySkuCode("EMPTY-SKU")).thenReturn(null);
             when(inventoryRepository.save(any(Inventory.class))).thenReturn(savedInventory);
@@ -506,7 +506,7 @@ class InventoryServiceTest {
         @DisplayName("Should update stock successfully")
         void shouldUpdateStockSuccessfully() {
             // Given
-            Inventory updatedInventory = new Inventory(1L, "SKU-IN-STOCK", 200);
+            Inventory updatedInventory = new Inventory(1L, "SKU-IN-STOCK", 200, 0);
 
             when(inventoryRepository.findBySkuCode("SKU-IN-STOCK")).thenReturn(inStockInventory);
             when(inventoryRepository.save(any(Inventory.class))).thenReturn(updatedInventory);
@@ -538,7 +538,7 @@ class InventoryServiceTest {
         @DisplayName("Should update stock to zero")
         void shouldUpdateStockToZero() {
             // Given
-            Inventory updatedInventory = new Inventory(1L, "SKU-IN-STOCK", 0);
+            Inventory updatedInventory = new Inventory(1L, "SKU-IN-STOCK", 0, 0);
 
             when(inventoryRepository.findBySkuCode("SKU-IN-STOCK")).thenReturn(inStockInventory);
             when(inventoryRepository.save(any(Inventory.class))).thenReturn(updatedInventory);
