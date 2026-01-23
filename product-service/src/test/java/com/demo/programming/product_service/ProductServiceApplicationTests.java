@@ -3,9 +3,11 @@ package com.demo.programming.product_service;
 import java.math.BigDecimal;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -17,13 +19,23 @@ import org.testcontainers.mongodb.MongoDBContainer;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.demo.programming.product_service.dto.ProductRequest;
+import com.demo.programming.product_service.kafka.producer.ProductEventProducer;
 import com.demo.programming.product_service.repository.ProductRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @Testcontainers
 @AutoConfigureMockMvc
+@EnabledIf("isDockerAvailable")
 class ProductServiceApplicationTests {
+
+	static boolean isDockerAvailable() {
+		try {
+			return org.testcontainers.DockerClientFactory.instance().isDockerAvailable();
+		} catch (Throwable ex) {
+			return false;
+		}
+	}
 
 	@Container
 	static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:4.4.2");
@@ -35,7 +47,10 @@ class ProductServiceApplicationTests {
 
 	@Autowired
 	private ProductRepository productRepository;
-	
+
+	@MockBean
+	private ProductEventProducer productEventProducer;
+
 	@DynamicPropertySource
 	static void setProperties(DynamicPropertyRegistry registry) {
 		registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
