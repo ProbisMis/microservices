@@ -21,5 +21,9 @@ public class Inventory {
     private Long id;
     private String skuCode;
     private Integer quantity;
+    private Integer reservedQuantity = 0;
 
+    public Integer getAvailableQuantity() {
+        return quantity - (reservedQuantity != null ? reservedQuantity : 0);
+    }
 }
