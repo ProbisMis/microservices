@@ -1,243 +1,169 @@
 {
-  "branchName": "ralph/kafka-implementation",
-  "title": "Kafka Implementation for Microservices",
-  "description": "Integrate Apache Kafka into the microservices architecture to enable event-driven communication between services, replacing/augmenting the current synchronous Feign client pattern with asynchronous messaging.",
+  "branchName": "ralph/global-exception-handler",
+  "title": "GlobalExceptionHandler Implementation",
+  "description": "Implement consistent exception handling across all microservices using @RestControllerAdvice pattern with shared custom exceptions",
   "architecture": {
-    "approach": "Hybrid model - Kafka for async event-driven communication, keep Feign as optional fallback",
-    "kafkaMode": "KRaft (no Zookeeper)",
-    "topics": [
-      {"name": "orders.placed", "producer": "order-service", "consumer": "inventory-service"},
-      {"name": "inventory.reserved", "producer": "inventory-service", "consumer": "order-service"},
-      {"name": "inventory.failed", "producer": "inventory-service", "consumer": "order-service"},
-      {"name": "orders.confirmed", "producer": "order-service", "consumer": "future consumers"},
-      {"name": "products.events", "producer": "product-service", "consumer": "future consumers"}
-    ]
+    "pattern": "Shared exceptions module + per-service GlobalExceptionHandler",
+    "newModule": "exceptions-common",
+    "followsPattern": "events-common"
   },
   "userStories": [
     {
       "id": "US-001",
-      "phase": "Infrastructure Setup",
-      "title": "Add Kafka to docker-compose.yml",
-      "description": "Add Kafka service (KRaft mode) and Kafka UI to docker-compose.yml with confluentinc/cp-kafka:7.6.0 image, kafka-ui service, kafka-data volume, and update service dependencies",
-      "files": ["docker-compose.yml"],
+      "phase": "Create exceptions-common Module",
+      "title": "Create exceptions-common pom.xml",
+      "description": "Create Maven module config for exceptions-common with appropriate groupId, artifactId, and parent reference",
+      "files": ["exceptions-common/pom.xml"],
       "passes": true
     },
     {
       "id": "US-002",
-      "phase": "Infrastructure Setup",
-      "title": "Update parent pom.xml with Kafka dependencies",
-      "description": "Add spring-kafka to dependencyManagement section in parent pom.xml",
-      "files": ["pom.xml"],
+      "phase": "Create exceptions-common Module",
+      "title": "Create BaseException abstract class",
+      "description": "Create abstract base exception class extending RuntimeException with fields: errorCode (String), httpStatus (HttpStatus), resourceName (String). Include constructor and getters.",
+      "files": ["exceptions-common/src/main/java/com/demo/programming/exceptions/base/BaseException.java"],
       "passes": true
     },
     {
       "id": "US-003",
-      "phase": "Infrastructure Setup",
-      "title": "Create events-common module",
-      "description": "Create shared event DTOs module with BaseEvent (eventId, eventType, timestamp, correlationId) and domain events: OrderPlacedEvent, OrderConfirmedEvent, OrderRejectedEvent, OrderLineItemEvent, InventoryReservedEvent, InventoryReservationFailedEvent, ProductCreatedEvent, ProductUpdatedEvent, ProductDeletedEvent",
-      "files": ["events-common/pom.xml", "events-common/src/main/java/com/demo/programming/events/*.java"],
-      "passes": true
+      "phase": "Create exceptions-common Module",
+      "title": "Create ResourceNotFoundException",
+      "description": "Create exception for 404 - Resource not found. Extends BaseException with constructor taking resourceName, fieldName, and fieldValue. Message format: '{resourceName} not found with {fieldName}: {fieldValue}'",
+      "files": ["exceptions-common/src/main/java/com/demo/programming/exceptions/ResourceNotFoundException.java"],
+      "passes": false
     },
     {
       "id": "US-004",
-      "phase": "Order Service",
-      "title": "Add Kafka dependencies to order-service",
-      "description": "Add spring-kafka, events-common, and spring-kafka-test (test scope) dependencies to order-service pom.xml",
-      "files": ["order-service/pom.xml"],
-      "passes": true
+      "phase": "Create exceptions-common Module",
+      "title": "Create DuplicateResourceException",
+      "description": "Create exception for 409 - Resource already exists. Extends BaseException with constructor taking resourceName, fieldName, and fieldValue. Message format: '{resourceName} already exists with {fieldName}: {fieldValue}'",
+      "files": ["exceptions-common/src/main/java/com/demo/programming/exceptions/DuplicateResourceException.java"],
+      "passes": false
     },
     {
       "id": "US-005",
-      "phase": "Order Service",
-      "title": "Create OrderStatus enum",
-      "description": "Create enum with values: PENDING, RESERVED, CONFIRMED, REJECTED, FAILED, CANCELLED",
-      "files": ["order-service/src/main/java/com/demo/programming/order_service/model/OrderStatus.java"],
-      "passes": true
+      "phase": "Create exceptions-common Module",
+      "title": "Create InsufficientStockException",
+      "description": "Create exception for 409 - Stock shortage. Extends BaseException with constructor taking List<String> skuCodes. Message format: 'Insufficient stock for products: {skuCodes}'",
+      "files": ["exceptions-common/src/main/java/com/demo/programming/exceptions/InsufficientStockException.java"],
+      "passes": false
     },
     {
       "id": "US-006",
-      "phase": "Order Service",
-      "title": "Update Order entity",
-      "description": "Add fields: status (OrderStatus enum with @Enumerated), failureReason (String), createdAt (Instant), updatedAt (Instant)",
-      "files": ["order-service/src/main/java/com/demo/programming/order_service/model/Order.java"],
-      "passes": true
+      "phase": "Create exceptions-common Module",
+      "title": "Create ErrorResponse record",
+      "description": "Create Java record for standard error response with fields: timestamp (Instant), status (int), error (String), message (String), path (String)",
+      "files": ["exceptions-common/src/main/java/com/demo/programming/exceptions/dto/ErrorResponse.java"],
+      "passes": false
     },
     {
       "id": "US-007",
-      "phase": "Order Service",
-      "title": "Create Kafka configuration for order-service",
-      "description": "Create @Configuration class with @EnableKafka, ProducerFactory, KafkaTemplate, ConsumerFactory, ConcurrentKafkaListenerContainerFactory beans. Add NewTopic beans for orders.placed, orders.confirmed, orders.rejected, orders.dlq",
-      "files": ["order-service/src/main/java/com/demo/programming/order_service/config/KafkaConfig.java"],
-      "passes": true
+      "phase": "Update Parent POM",
+      "title": "Add exceptions-common module to parent pom.xml",
+      "description": "Add exceptions-common to the modules list in the parent pom.xml",
+      "files": ["pom.xml"],
+      "passes": false
     },
     {
       "id": "US-008",
-      "phase": "Order Service",
-      "title": "Create OrderEventProducer",
-      "description": "Create @Component with KafkaTemplate. Implement publishOrderPlaced, publishOrderConfirmed, publishOrderRejected methods. Use orderNumber as message key",
-      "files": ["order-service/src/main/java/com/demo/programming/order_service/kafka/producer/OrderEventProducer.java"],
-      "passes": true
+      "phase": "Product Service",
+      "title": "Add exceptions-common dependency to product-service",
+      "description": "Add exceptions-common dependency to product-service pom.xml",
+      "files": ["product-service/pom.xml"],
+      "passes": false
     },
     {
       "id": "US-009",
-      "phase": "Order Service",
-      "title": "Create InventoryEventConsumer",
-      "description": "Create @Component with @KafkaListener methods for inventory.reserved and inventory.failed topics. Call orderService.confirmOrder or orderService.rejectOrder",
-      "files": ["order-service/src/main/java/com/demo/programming/order_service/kafka/consumer/InventoryEventConsumer.java"],
-      "passes": true
+      "phase": "Product Service",
+      "title": "Create GlobalExceptionHandler for product-service",
+      "description": "Create @RestControllerAdvice class handling: ResourceNotFoundException (404), MethodArgumentNotValidException (400), Exception (500). Return ErrorResponse with proper status codes and messages.",
+      "files": ["product-service/src/main/java/com/demo/programming/product_service/exception/GlobalExceptionHandler.java"],
+      "passes": false
     },
     {
       "id": "US-010",
-      "phase": "Order Service",
-      "title": "Update OrderService for async flow",
-      "description": "Inject OrderEventProducer. Add placeOrderAsync method (saves with PENDING status, publishes OrderPlacedEvent). Add confirmOrder and rejectOrder methods. Keep existing sync method as fallback",
-      "files": ["order-service/src/main/java/com/demo/programming/order_service/service/OrderService.java"],
-      "passes": true
+      "phase": "Product Service",
+      "title": "Refactor ProductService to use custom exceptions",
+      "description": "Replace IllegalArgumentException('Product not found with id: ' + id) with ResourceNotFoundException('Product', 'id', id)",
+      "files": ["product-service/src/main/java/com/demo/programming/product_service/service/ProductService.java"],
+      "passes": false
     },
     {
       "id": "US-011",
-      "phase": "Order Service",
-      "title": "Update order-service application.properties",
-      "description": "Add spring.kafka.bootstrap-servers, producer/consumer serializer configs, consumer group-id, trusted packages, topic names. localhost:9092 for default, kafka:29092 for docker",
-      "files": ["order-service/src/main/resources/application.properties", "order-service/src/main/resources/application-docker.properties"],
-      "passes": true
+      "phase": "Inventory Service",
+      "title": "Add exceptions-common dependency to inventory-service",
+      "description": "Add exceptions-common dependency to inventory-service pom.xml",
+      "files": ["inventory-service/pom.xml"],
+      "passes": false
     },
     {
       "id": "US-012",
       "phase": "Inventory Service",
-      "title": "Add Kafka dependencies to inventory-service",
-      "description": "Add spring-kafka, events-common, and spring-kafka-test (test scope) dependencies to inventory-service pom.xml",
-      "files": ["inventory-service/pom.xml"],
-      "passes": true
+      "title": "Create GlobalExceptionHandler for inventory-service",
+      "description": "Create @RestControllerAdvice class handling: ResourceNotFoundException (404), DuplicateResourceException (409), MethodArgumentNotValidException (400), Exception (500). Return ErrorResponse with proper status codes and messages.",
+      "files": ["inventory-service/src/main/java/com/demo/programming/inventory_service/exception/GlobalExceptionHandler.java"],
+      "passes": false
     },
     {
       "id": "US-013",
       "phase": "Inventory Service",
-      "title": "Update Inventory entity",
-      "description": "Add reservedQuantity (Integer, default 0) field. Add getAvailableQuantity() method returning quantity - reservedQuantity",
-      "files": ["inventory-service/src/main/java/com/demo/programming/inventory_service/model/Inventory.java"],
-      "passes": true
+      "title": "Refactor InventoryService to use custom exceptions",
+      "description": "Replace IllegalArgumentException('Inventory not found with skuCode: ' + skuCode) with ResourceNotFoundException('Inventory', 'skuCode', skuCode). Replace IllegalArgumentException('Inventory already exists with skuCode: ' + ...) with DuplicateResourceException('Inventory', 'skuCode', skuCode)",
+      "files": ["inventory-service/src/main/java/com/demo/programming/inventory_service/service/InventoryService.java"],
+      "passes": false
     },
     {
       "id": "US-014",
-      "phase": "Inventory Service",
-      "title": "Create InventoryReservation entity",
-      "description": "Create @Entity with fields: id (Long), orderNumber (String), skuCode (String), quantity (Integer), createdAt (Instant)",
-      "files": ["inventory-service/src/main/java/com/demo/programming/inventory_service/model/InventoryReservation.java"],
-      "passes": true
+      "phase": "Order Service",
+      "title": "Add exceptions-common dependency to order-service",
+      "description": "Add exceptions-common dependency to order-service pom.xml",
+      "files": ["order-service/pom.xml"],
+      "passes": false
     },
     {
       "id": "US-015",
-      "phase": "Inventory Service",
-      "title": "Create InventoryReservationRepository",
-      "description": "Create interface extending JpaRepository with methods: findByOrderNumber, deleteByOrderNumber",
-      "files": ["inventory-service/src/main/java/com/demo/programming/inventory_service/repository/InventoryReservationRepository.java"],
-      "passes": true
+      "phase": "Order Service",
+      "title": "Create GlobalExceptionHandler for order-service",
+      "description": "Create @RestControllerAdvice class handling: ResourceNotFoundException (404), InsufficientStockException (409), FeignException (propagate status), MethodArgumentNotValidException (400), Exception (500). Return ErrorResponse with proper status codes and messages.",
+      "files": ["order-service/src/main/java/com/demo/programming/order_service/exception/GlobalExceptionHandler.java"],
+      "passes": false
     },
     {
       "id": "US-016",
-      "phase": "Inventory Service",
-      "title": "Create Kafka configuration for inventory-service",
-      "description": "Create @Configuration class with @EnableKafka, ProducerFactory, KafkaTemplate, ConsumerFactory, ConcurrentKafkaListenerContainerFactory beans. Add NewTopic beans for inventory.reserved, inventory.failed",
-      "files": ["inventory-service/src/main/java/com/demo/programming/inventory_service/config/KafkaConfig.java"],
-      "passes": true
+      "phase": "Order Service",
+      "title": "Refactor OrderService to use custom exceptions",
+      "description": "Replace IllegalArgumentException('Product is not in stock, please try again later') with InsufficientStockException(skuCodes). Replace IllegalArgumentException('Order not found with orderNumber: ' + orderNumber) with ResourceNotFoundException('Order', 'orderNumber', orderNumber)",
+      "files": ["order-service/src/main/java/com/demo/programming/order_service/service/OrderService.java"],
+      "passes": false
     },
     {
       "id": "US-017",
-      "phase": "Inventory Service",
-      "title": "Create InventoryEventProducer",
-      "description": "Create @Component with KafkaTemplate. Implement publishInventoryReserved and publishInventoryFailed methods",
-      "files": ["inventory-service/src/main/java/com/demo/programming/inventory_service/kafka/producer/InventoryEventProducer.java"],
-      "passes": true
-    },
-    {
-      "id": "US-018",
-      "phase": "Inventory Service",
-      "title": "Create OrderEventConsumer",
-      "description": "Create @Component with @KafkaListener for orders.placed topic. Call inventoryService.reserveInventory and publish appropriate response event",
-      "files": ["inventory-service/src/main/java/com/demo/programming/inventory_service/kafka/consumer/OrderEventConsumer.java"],
-      "passes": true
-    },
-    {
-      "id": "US-019",
-      "phase": "Inventory Service",
-      "title": "Update InventoryService with reservation logic",
-      "description": "Inject InventoryReservationRepository and InventoryEventProducer. Add reserveInventory, releaseReservation, and confirmReservation methods",
-      "files": ["inventory-service/src/main/java/com/demo/programming/inventory_service/service/InventoryService.java"],
-      "passes": true
-    },
-    {
-      "id": "US-020",
-      "phase": "Inventory Service",
-      "title": "Update inventory-service application.properties",
-      "description": "Add spring.kafka.bootstrap-servers, producer/consumer serializer configs, consumer group-id, trusted packages, topic names. localhost:9092 for default, kafka:29092 for docker",
-      "files": ["inventory-service/src/main/resources/application.properties", "inventory-service/src/main/resources/application-docker.properties"],
-      "passes": true
-    },
-    {
-      "id": "US-021",
-      "phase": "Product Service",
-      "title": "Add Kafka dependencies to product-service",
-      "description": "Add spring-kafka and events-common dependencies (producer only, no consumer needed)",
-      "files": ["product-service/pom.xml"],
-      "passes": true
-    },
-    {
-      "id": "US-022",
-      "phase": "Product Service",
-      "title": "Create Kafka configuration for product-service",
-      "description": "Create @Configuration class with ProducerFactory and KafkaTemplate beans. Add NewTopic bean for products.events",
-      "files": ["product-service/src/main/java/com/demo/programming/product_service/config/KafkaConfig.java"],
-      "passes": true
-    },
-    {
-      "id": "US-023",
-      "phase": "Product Service",
-      "title": "Create ProductEventProducer",
-      "description": "Create @Component with KafkaTemplate. Implement publishProductCreated, publishProductUpdated, publishProductDeleted methods",
-      "files": ["product-service/src/main/java/com/demo/programming/product_service/kafka/producer/ProductEventProducer.java"],
-      "passes": true
-    },
-    {
-      "id": "US-024",
-      "phase": "Product Service",
-      "title": "Update ProductService with event publishing",
-      "description": "Inject ProductEventProducer. Call publishProductCreated after createProduct, publishProductUpdated after updateProduct, publishProductDeleted before deleteProduct",
-      "files": ["product-service/src/main/java/com/demo/programming/product_service/service/ProductService.java"],
-      "passes": true
-    },
-    {
-      "id": "US-025",
-      "phase": "Product Service",
-      "title": "Update product-service application.properties",
-      "description": "Add spring.kafka.bootstrap-servers and producer serializer configs. localhost:9092 for default, kafka:29092 for docker",
-      "files": ["product-service/src/main/resources/application.properties", "product-service/src/main/resources/application-docker.properties"],
-      "passes": true
-    },
-    {
-      "id": "US-026",
       "phase": "Testing",
-      "title": "Create integration tests for Kafka",
-      "description": "Add @SpringBootTest classes with @EmbeddedKafka for order-service and inventory-service. Test full async flow: order placed -> inventory reserved -> order confirmed",
-      "files": ["order-service/src/test/java/**/OrderKafkaIntegrationTest.java", "inventory-service/src/test/java/**/InventoryKafkaIntegrationTest.java"],
-      "passes": true
-    },
-    {
-      "id": "US-027",
-      "phase": "Testing",
-      "title": "End-to-end verification",
-      "description": "Verify complete async order flow with Docker: start Kafka, create product, add inventory, place order (verify PENDING), check order updates to CONFIRMED, test failure with insufficient inventory",
+      "title": "End-to-end verification of exception handling",
+      "description": "Verify: 404 for invalid product ID, 409 for duplicate inventory, 409 for insufficient stock. Build with 'mvn clean package -DskipTests' and test with Docker.",
       "files": [],
-      "passes": true
+      "passes": false
     }
   ],
   "verification": {
-    "kafkaUI": "http://localhost:8090",
+    "build": "mvn clean package -DskipTests",
+    "start": "docker compose up -d --build",
     "testCommands": [
-      {"description": "Create product", "command": "curl -X POST http://localhost:9000/api/product -H \"Content-Type: application/json\" -d '{\"name\":\"Test\",\"description\":\"Test product\",\"price\":100}'"},
-      {"description": "Add inventory", "command": "curl -X POST http://localhost:9000/api/inventory -H \"Content-Type: application/json\" -d '{\"skuCode\":\"TEST-001\",\"quantity\":10}'"},
-      {"description": "Place order", "command": "curl -X POST http://localhost:9000/api/order -H \"Content-Type: application/json\" -d '{\"orderLineItemsDtoList\":[{\"skuCode\":\"TEST-001\",\"price\":100,\"quantity\":2}]}'"},
-      {"description": "Check order status", "command": "curl http://localhost:9000/api/order/{orderNumber}"}
+      {
+        "description": "404 - Resource not found",
+        "command": "curl http://localhost:9000/api/product/invalid-id",
+        "expectedStatus": 404
+      },
+      {
+        "description": "409 - Duplicate inventory",
+        "command": "curl -X POST http://localhost:9000/api/inventory -H \"Content-Type: application/json\" -d '{\"skuCode\":\"existing-sku\",\"quantity\":10}'",
+        "expectedStatus": 409
+      },
+      {
+        "description": "409 - Insufficient stock",
+        "command": "curl -X POST http://localhost:9000/api/order -H \"Content-Type: application/json\" -d '{\"skuCode\":\"out-of-stock-sku\",\"quantity\":1000}'",
+        "expectedStatus": 409
+      }
     ]
   }
 }
