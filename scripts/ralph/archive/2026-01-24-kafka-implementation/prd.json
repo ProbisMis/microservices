@@ -1,0 +1,169 @@
+{
+  "branchName": "ralph/global-exception-handler",
+  "title": "GlobalExceptionHandler Implementation",
+  "description": "Implement consistent exception handling across all microservices using @RestControllerAdvice pattern with shared custom exceptions",
+  "architecture": {
+    "pattern": "Shared exceptions module + per-service GlobalExceptionHandler",
+    "newModule": "exceptions-common",
+    "followsPattern": "events-common"
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "phase": "Create exceptions-common Module",
+      "title": "Create exceptions-common pom.xml",
+      "description": "Create Maven module config for exceptions-common with appropriate groupId, artifactId, and parent reference",
+      "files": ["exceptions-common/pom.xml"],
+      "passes": false
+    },
+    {
+      "id": "US-002",
+      "phase": "Create exceptions-common Module",
+      "title": "Create BaseException abstract class",
+      "description": "Create abstract base exception class extending RuntimeException with fields: errorCode (String), httpStatus (HttpStatus), resourceName (String). Include constructor and getters.",
+      "files": ["exceptions-common/src/main/java/com/demo/programming/exceptions/base/BaseException.java"],
+      "passes": false
+    },
+    {
+      "id": "US-003",
+      "phase": "Create exceptions-common Module",
+      "title": "Create ResourceNotFoundException",
+      "description": "Create exception for 404 - Resource not found. Extends BaseException with constructor taking resourceName, fieldName, and fieldValue. Message format: '{resourceName} not found with {fieldName}: {fieldValue}'",
+      "files": ["exceptions-common/src/main/java/com/demo/programming/exceptions/ResourceNotFoundException.java"],
+      "passes": false
+    },
+    {
+      "id": "US-004",
+      "phase": "Create exceptions-common Module",
+      "title": "Create DuplicateResourceException",
+      "description": "Create exception for 409 - Resource already exists. Extends BaseException with constructor taking resourceName, fieldName, and fieldValue. Message format: '{resourceName} already exists with {fieldName}: {fieldValue}'",
+      "files": ["exceptions-common/src/main/java/com/demo/programming/exceptions/DuplicateResourceException.java"],
+      "passes": false
+    },
+    {
+      "id": "US-005",
+      "phase": "Create exceptions-common Module",
+      "title": "Create InsufficientStockException",
+      "description": "Create exception for 409 - Stock shortage. Extends BaseException with constructor taking List<String> skuCodes. Message format: 'Insufficient stock for products: {skuCodes}'",
+      "files": ["exceptions-common/src/main/java/com/demo/programming/exceptions/InsufficientStockException.java"],
+      "passes": false
+    },
+    {
+      "id": "US-006",
+      "phase": "Create exceptions-common Module",
+      "title": "Create ErrorResponse record",
+      "description": "Create Java record for standard error response with fields: timestamp (Instant), status (int), error (String), message (String), path (String)",
+      "files": ["exceptions-common/src/main/java/com/demo/programming/exceptions/dto/ErrorResponse.java"],
+      "passes": false
+    },
+    {
+      "id": "US-007",
+      "phase": "Update Parent POM",
+      "title": "Add exceptions-common module to parent pom.xml",
+      "description": "Add exceptions-common to the modules list in the parent pom.xml",
+      "files": ["pom.xml"],
+      "passes": false
+    },
+    {
+      "id": "US-008",
+      "phase": "Product Service",
+      "title": "Add exceptions-common dependency to product-service",
+      "description": "Add exceptions-common dependency to product-service pom.xml",
+      "files": ["product-service/pom.xml"],
+      "passes": false
+    },
+    {
+      "id": "US-009",
+      "phase": "Product Service",
+      "title": "Create GlobalExceptionHandler for product-service",
+      "description": "Create @RestControllerAdvice class handling: ResourceNotFoundException (404), MethodArgumentNotValidException (400), Exception (500). Return ErrorResponse with proper status codes and messages.",
+      "files": ["product-service/src/main/java/com/demo/programming/product_service/exception/GlobalExceptionHandler.java"],
+      "passes": false
+    },
+    {
+      "id": "US-010",
+      "phase": "Product Service",
+      "title": "Refactor ProductService to use custom exceptions",
+      "description": "Replace IllegalArgumentException('Product not found with id: ' + id) with ResourceNotFoundException('Product', 'id', id)",
+      "files": ["product-service/src/main/java/com/demo/programming/product_service/service/ProductService.java"],
+      "passes": false
+    },
+    {
+      "id": "US-011",
+      "phase": "Inventory Service",
+      "title": "Add exceptions-common dependency to inventory-service",
+      "description": "Add exceptions-common dependency to inventory-service pom.xml",
+      "files": ["inventory-service/pom.xml"],
+      "passes": false
+    },
+    {
+      "id": "US-012",
+      "phase": "Inventory Service",
+      "title": "Create GlobalExceptionHandler for inventory-service",
+      "description": "Create @RestControllerAdvice class handling: ResourceNotFoundException (404), DuplicateResourceException (409), MethodArgumentNotValidException (400), Exception (500). Return ErrorResponse with proper status codes and messages.",
+      "files": ["inventory-service/src/main/java/com/demo/programming/inventory_service/exception/GlobalExceptionHandler.java"],
+      "passes": false
+    },
+    {
+      "id": "US-013",
+      "phase": "Inventory Service",
+      "title": "Refactor InventoryService to use custom exceptions",
+      "description": "Replace IllegalArgumentException('Inventory not found with skuCode: ' + skuCode) with ResourceNotFoundException('Inventory', 'skuCode', skuCode). Replace IllegalArgumentException('Inventory already exists with skuCode: ' + ...) with DuplicateResourceException('Inventory', 'skuCode', skuCode)",
+      "files": ["inventory-service/src/main/java/com/demo/programming/inventory_service/service/InventoryService.java"],
+      "passes": false
+    },
+    {
+      "id": "US-014",
+      "phase": "Order Service",
+      "title": "Add exceptions-common dependency to order-service",
+      "description": "Add exceptions-common dependency to order-service pom.xml",
+      "files": ["order-service/pom.xml"],
+      "passes": false
+    },
+    {
+      "id": "US-015",
+      "phase": "Order Service",
+      "title": "Create GlobalExceptionHandler for order-service",
+      "description": "Create @RestControllerAdvice class handling: ResourceNotFoundException (404), InsufficientStockException (409), FeignException (propagate status), MethodArgumentNotValidException (400), Exception (500). Return ErrorResponse with proper status codes and messages.",
+      "files": ["order-service/src/main/java/com/demo/programming/order_service/exception/GlobalExceptionHandler.java"],
+      "passes": false
+    },
+    {
+      "id": "US-016",
+      "phase": "Order Service",
+      "title": "Refactor OrderService to use custom exceptions",
+      "description": "Replace IllegalArgumentException('Product is not in stock, please try again later') with InsufficientStockException(skuCodes). Replace IllegalArgumentException('Order not found with orderNumber: ' + orderNumber) with ResourceNotFoundException('Order', 'orderNumber', orderNumber)",
+      "files": ["order-service/src/main/java/com/demo/programming/order_service/service/OrderService.java"],
+      "passes": false
+    },
+    {
+      "id": "US-017",
+      "phase": "Testing",
+      "title": "End-to-end verification of exception handling",
+      "description": "Verify: 404 for invalid product ID, 409 for duplicate inventory, 409 for insufficient stock. Build with 'mvn clean package -DskipTests' and test with Docker.",
+      "files": [],
+      "passes": false
+    }
+  ],
+  "verification": {
+    "build": "mvn clean package -DskipTests",
+    "start": "docker compose up -d --build",
+    "testCommands": [
+      {
+        "description": "404 - Resource not found",
+        "command": "curl http://localhost:9000/api/product/invalid-id",
+        "expectedStatus": 404
+      },
+      {
+        "description": "409 - Duplicate inventory",
+        "command": "curl -X POST http://localhost:9000/api/inventory -H \"Content-Type: application/json\" -d '{\"skuCode\":\"existing-sku\",\"quantity\":10}'",
+        "expectedStatus": 409
+      },
+      {
+        "description": "409 - Insufficient stock",
+        "command": "curl -X POST http://localhost:9000/api/order -H \"Content-Type: application/json\" -d '{\"skuCode\":\"out-of-stock-sku\",\"quantity\":1000}'",
+        "expectedStatus": 409
+      }
+    ]
+  }
+}
