@@ -5,6 +5,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.demo.programming.exceptions.DuplicateResourceException;
+import com.demo.programming.exceptions.ResourceNotFoundException;
 import com.demo.programming.inventory_service.dto.InventoryRequest;
 import com.demo.programming.inventory_service.dto.InventoryResponse;
 import com.demo.programming.inventory_service.model.Inventory;
@@ -43,7 +45,7 @@ public class InventoryService {
     public InventoryResponse getInventoryBySkuCode(String skuCode) {
         Inventory inventory = inventoryRepository.findBySkuCode(skuCode);
         if (inventory == null) {
-            throw new IllegalArgumentException("Inventory not found with skuCode: " + skuCode);
+            throw new ResourceNotFoundException("Inventory", "skuCode", skuCode);
         }
         return InventoryResponse.builder()
                 .skuCode(inventory.getSkuCode())
@@ -55,7 +57,7 @@ public class InventoryService {
     public InventoryResponse addInventory(InventoryRequest inventoryRequest) {
         Inventory existingInventory = inventoryRepository.findBySkuCode(inventoryRequest.getSkuCode());
         if (existingInventory != null) {
-            throw new IllegalArgumentException("Inventory already exists with skuCode: " + inventoryRequest.getSkuCode());
+            throw new DuplicateResourceException("Inventory", "skuCode", inventoryRequest.getSkuCode());
         }
 
         Inventory inventory = new Inventory();
@@ -75,7 +77,7 @@ public class InventoryService {
     public InventoryResponse updateStock(String skuCode, Integer quantity) {
         Inventory inventory = inventoryRepository.findBySkuCode(skuCode);
         if (inventory == null) {
-            throw new IllegalArgumentException("Inventory not found with skuCode: " + skuCode);
+            throw new ResourceNotFoundException("Inventory", "skuCode", skuCode);
         }
 
         inventory.setQuantity(quantity);
@@ -92,7 +94,7 @@ public class InventoryService {
     public void deleteInventory(String skuCode) {
         Inventory inventory = inventoryRepository.findBySkuCode(skuCode);
         if (inventory == null) {
-            throw new IllegalArgumentException("Inventory not found with skuCode: " + skuCode);
+            throw new ResourceNotFoundException("Inventory", "skuCode", skuCode);
         }
         inventoryRepository.delete(inventory);
         log.info("Inventory deleted for skuCode: {}", skuCode);

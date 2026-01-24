@@ -6,6 +6,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.demo.programming.exceptions.InsufficientStockException;
+import com.demo.programming.exceptions.ResourceNotFoundException;
 import com.demo.programming.order_service.client.InventoryClient;
 import com.demo.programming.order_service.dto.InventoryResponse;
 import com.demo.programming.order_service.dto.OrderLineItemsDto;
@@ -41,10 +43,17 @@ public class OrderService {
 
         var result = inventoryClient.isInStock(skuCodes);
 
-        if (result != null && !result.isEmpty() && result.stream().allMatch(InventoryResponse::isInStock))
+        if (result != null && !result.isEmpty() && result.stream().allMatch(InventoryResponse::isInStock)) {
             orderRepository.save(order);
-        else
-            throw new IllegalArgumentException("Product is not in stock, please try again later");
+        } else {
+            List<String> outOfStockSkuCodes = result == null || result.isEmpty()
+                    ? skuCodes
+                    : result.stream()
+                            .filter(r -> !r.isInStock())
+                            .map(InventoryResponse::getSkuCode)
+                            .toList();
+            throw new InsufficientStockException(outOfStockSkuCodes);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -58,7 +67,7 @@ public class OrderService {
     public OrderResponse getOrderByOrderNumber(String orderNumber) {
         return orderRepository.findByOrderNumber(orderNumber)
                 .map(this::mapToResponse)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found with orderNumber: " + orderNumber));
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "orderNumber", orderNumber));
     }
 
     private OrderLineItems mapToEntity(OrderLineItemsDto orderLineItemsDto) {
