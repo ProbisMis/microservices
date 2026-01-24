@@ -17,6 +17,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>events-common</module>
+        <module>exceptions-common</module>
         <module>product-service</module>
         <module>order-service</module>
         <module>inventory-service</module>
