@@ -1,0 +1,197 @@
+# OBSERVABILITY CONFIGURATION EXAMPLES
+# Copy relevant sections to your service's application.yml
+
+# ============================================================
+# SPRING BOOT ACTUATOR (Required for metrics exposure)
+# ============================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        # Expose these endpoints: /actuator/health, /actuator/prometheus, etc.
+        include: health, info, prometheus, metrics, circuitbreakers
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always  # Show full health details
+      probes:
+        enabled: true       # Enable Kubernetes probes
+  health:
+    circuitbreakers:
+      enabled: true         # Include circuit breaker state in health
+
+# ============================================================
+# DISTRIBUTED TRACING (Micrometer + Zipkin/Tempo)
+# ============================================================
+management:
+  tracing:
+    sampling:
+      probability: 1.0      # 100% sampling in dev; use 0.1 (10%) in prod
+    propagation:
+      type: w3c             # or b3 for Zipkin format
+  zipkin:
+    tracing:
+      endpoint: http://tempo:9411/api/v2/spans  # or Zipkin URL
+
+# Add Trace ID to logs automatically
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+  # Example output: INFO [order-service,abc123,def456] Placing order...
+
+# ============================================================
+# PROMETHEUS METRICS
+# ============================================================
+management:
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}  # Tag all metrics with service name
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true  # Enable histogram for request latency
+
+# ============================================================
+# VIRTUAL THREADS (Java 21+ / Spring Boot 3.2+)
+# ============================================================
+spring:
+  threads:
+    virtual:
+      enabled: true  # That's it! All request handling uses virtual threads
+
+# ============================================================
+# JPA DEBUGGING (Development only!)
+# ============================================================
+spring:
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        generate_statistics: true  # Shows query counts
+        # Warns about N+1 queries
+        session:
+          events:
+            log:
+              LOG_QUERIES_SLOWER_THAN_MS: 25
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.stat: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE  # Shows SQL parameters
+
+# ============================================================
+# FULL OBSERVABILITY STACK DOCKER COMPOSE
+# ============================================================
+# Add to your docker-compose.yml:
+#
+# services:
+#   prometheus:
+#     image: prom/prometheus:latest
+#     ports:
+#       - "9090:9090"
+#     volumes:
+#       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+#
+#   grafana:
+#     image: grafana/grafana:latest
+#     ports:
+#       - "3000:3000"
+#     environment:
+#       - GF_SECURITY_ADMIN_PASSWORD=admin
+#
+#   tempo:
+#     image: grafana/tempo:latest
+#     ports:
+#       - "9411:9411"  # Zipkin receiver
+#       - "3200:3200"  # Tempo query
+#
+#   loki:
+#     image: grafana/loki:latest
+#     ports:
+#       - "3100:3100"
+
+# ============================================================
+# PROMETHEUS SCRAPE CONFIG (prometheus.yml)
+# ============================================================
+# scrape_configs:
+#   - job_name: 'spring-boot-services'
+#     metrics_path: '/actuator/prometheus'
+#     scrape_interval: 15s
+#     static_configs:
+#       - targets:
+#           - 'order-service:8081'
+#           - 'inventory-service:8082'
+#           - 'product-service:8080'
+
+# ============================================================
+# REQUIRED DEPENDENCIES (pom.xml)
+# ============================================================
+# <dependencies>
+#     <!-- Actuator -->
+#     <dependency>
+#         <groupId>org.springframework.boot</groupId>
+#         <artifactId>spring-boot-starter-actuator</artifactId>
+#     </dependency>
+#
+#     <!-- Prometheus metrics -->
+#     <dependency>
+#         <groupId>io.micrometer</groupId>
+#         <artifactId>micrometer-registry-prometheus</artifactId>
+#     </dependency>
+#
+#     <!-- Distributed tracing (choose one bridge) -->
+#     <dependency>
+#         <groupId>io.micrometer</groupId>
+#         <artifactId>micrometer-tracing-bridge-brave</artifactId>
+#     </dependency>
+#
+#     <!-- Zipkin/Tempo reporter -->
+#     <dependency>
+#         <groupId>io.zipkin.reporter2</groupId>
+#         <artifactId>zipkin-reporter-brave</artifactId>
+#     </dependency>
+#
+#     <!-- Resilience4j (optional, for circuit breaker metrics) -->
+#     <dependency>
+#         <groupId>io.github.resilience4j</groupId>
+#         <artifactId>resilience4j-micrometer</artifactId>
+#     </dependency>
+# </dependencies>
+
+# ============================================================
+# CUSTOM METRICS WITH @Timed
+# ============================================================
+# Example in your service class:
+#
+# @Timed(value = "order.placement",
+#        description = "Time spent placing orders",
+#        histogram = true)
+# @Transactional
+# public void placeOrder(OrderRequest request) {
+#     // ...
+# }
+#
+# This creates:
+# - order_placement_seconds_count (counter)
+# - order_placement_seconds_sum (total time)
+# - order_placement_seconds_bucket (histogram percentiles)
+
+# ============================================================
+# GRAFANA DASHBOARD QUERY EXAMPLES
+# ============================================================
+# Request rate per service:
+#   rate(http_server_requests_seconds_count{application="order-service"}[5m])
+#
+# 95th percentile latency:
+#   histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))
+#
+# Error rate:
+#   rate(http_server_requests_seconds_count{status=~"5.."}[5m])
+#   / rate(http_server_requests_seconds_count[5m]) * 100
+#
+# Circuit breaker state:
+#   resilience4j_circuitbreaker_state{name="inventoryService"}

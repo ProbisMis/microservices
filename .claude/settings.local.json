@@ -10,7 +10,12 @@
       "Bash(powershell:*)",
       "Bash(docker exec:*)",
       "Bash(mvn test:*)",
-      "Bash(mvn clean compile:*)"
+      "Bash(mvn clean compile:*)",
+      "Bash(dir:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(mvn test-compile:*)",
+      "Bash(bash scripts/ralph/ralph.sh:*)"
     ]
   },
   "hooks": {
@@ -26,5 +31,8 @@
         ]
       }
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "notion"
+  ]
 }

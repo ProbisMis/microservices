@@ -43,3 +43,6 @@ docker
 
 ### Keycloak ###
 volume-data
+
+### MCP Configuration ###
+.mcp.json
