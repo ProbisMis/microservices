@@ -1,5 +1,5 @@
 # Ralph Progress Log
-Started: Thu, Jan 22, 2026 10:08:08 PM
+Started: Sat, Jan 24, 2026  2:21:11 PM
 ---
 
 ## Codebase Patterns
@@ -18,8 +18,14 @@ Started: Thu, Jan 22, 2026 10:08:08 PM
   - Shared modules must have `<skip>true</skip>` in spring-boot-maven-plugin config to prevent repackaging as executable JAR
   - Module won't be found by Maven `-pl` flag until added to parent pom.xml modules list
   - spring-web dependency is needed for HttpStatus enum
+  - Shared modules must have `<skip>true</skip>` in spring-boot-maven-plugin config to prevent repackaging as executable JAR
+  - Module won't be found by Maven `-pl` flag until added to parent pom.xml modules list
+  - spring-web dependency is needed for HttpStatus enum
 ---
 
+## 2026-01-24 14:23 - US-002
+- Created BaseException abstract class extending RuntimeException
+- Files changed: exceptions-common/src/main/java/com/demo/programming/exceptions/base/BaseException.java
 ## 2026-01-24 14:23 - US-002
 - Created BaseException abstract class extending RuntimeException
 - Files changed: exceptions-common/src/main/java/com/demo/programming/exceptions/base/BaseException.java
