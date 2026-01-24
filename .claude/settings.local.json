@@ -15,9 +15,13 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(mvn test-compile:*)",
-      "Bash(bash scripts/ralph/ralph.sh:*)"
+      "Bash(bash scripts/ralph/ralph.sh:*)",
+      "Bash(claude)"
     ]
   },
+  "enabledMcpjsonServers": [
+    "notion"
+  ],
   "hooks": {
     "SessionStart": [
       {
@@ -31,8 +35,5 @@
         ]
       }
     ]
-  },
-  "enabledMcpjsonServers": [
-    "notion"
-  ]
+  }
 }
