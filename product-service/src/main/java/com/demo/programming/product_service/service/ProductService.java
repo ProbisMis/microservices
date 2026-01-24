@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.demo.programming.exceptions.ResourceNotFoundException;
 import com.demo.programming.product_service.dto.ProductRequest;
 import com.demo.programming.product_service.dto.ProductResponse;
 import com.demo.programming.product_service.model.Product;
@@ -39,12 +40,12 @@ public class ProductService {
     public ProductResponse getProductById(String id) {
         return productRepository.findById(id)
                 .map(this::mapToProductResponse)
-                .orElseThrow(() -> new IllegalArgumentException("Product not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id));
     }
 
     public ProductResponse updateProduct(String id, ProductRequest productRequest) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Product not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id));
 
         product.setName(productRequest.getName());
         product.setDescription(productRequest.getDescription());
@@ -58,7 +59,7 @@ public class ProductService {
 
     public void deleteProduct(String id) {
         if (!productRepository.existsById(id)) {
-            throw new IllegalArgumentException("Product not found with id: " + id);
+            throw new ResourceNotFoundException("Product", "id", id);
         }
         productRepository.deleteById(id);
         log.info("Product {} is deleted", id);
