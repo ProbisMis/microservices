@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.demo.programming.product_service.dto.ProductRequest;
 import com.demo.programming.product_service.dto.ProductResponse;
+import com.demo.programming.product_service.kafka.producer.ProductEventProducer;
 import com.demo.programming.product_service.model.Product;
 import com.demo.programming.product_service.repository.ProductRepository;
 
@@ -31,6 +32,9 @@ class ProductServiceTest {
 
     @Mock
     private ProductRepository productRepository;
+
+    @Mock
+    private ProductEventProducer productEventProducer;
 
     @InjectMocks
     private ProductService productService;

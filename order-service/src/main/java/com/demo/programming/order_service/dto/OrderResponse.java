@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -20,6 +21,18 @@ public class OrderResponse {
 
     @Schema(description = "Order number (UUID)", example = "550e8400-e29b-41d4-a716-446655440000")
     private String orderNumber;
+
+    @Schema(description = "Current status of the order", example = "PENDING")
+    private String status;
+
+    @Schema(description = "Reason for failure/rejection if applicable")
+    private String failureReason;
+
+    @Schema(description = "Timestamp when order was created")
+    private Instant createdAt;
+
+    @Schema(description = "Timestamp when order was last updated")
+    private Instant updatedAt;
 
     @Schema(description = "List of order line items")
     private List<OrderLineItemsDto> orderLineItemsDtoList;

@@ -1,11 +1,12 @@
 package com.demo.programming.inventory_service.model;
 
-import jakarta.persistence.Column;
+import java.time.Instant;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,26 +14,23 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "inventory", indexes = {
-        @Index(name = "idx_inventory_sku_code", columnList = "skuCode", unique = true)
-})
+@Table(name = "inventory_reservations")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Inventory {
+public class InventoryReservation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
+    private String orderNumber;
     private String skuCode;
-
-    @Column(nullable = false)
     private Integer quantity;
-    private Integer reservedQuantity = 0;
+    private Instant createdAt;
 
-    public Integer getAvailableQuantity() {
-        return quantity - (reservedQuantity != null ? reservedQuantity : 0);
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
     }
 }
