@@ -10,7 +10,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "orders")
+@Table(name = "orders", indexes = {
+    @Index(name = "idx_order_number", columnList = "orderNumber", unique = true)
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,8 +21,11 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String orderNumber;
-    @OneToMany(cascade = CascadeType.ALL)
-    private List<OrderLineItems> orderLineItemsList = new ArrayList<>();
 
+    @Column(nullable = false, unique = true, length = 36)
+    private String orderNumber;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "order_id")
+    private List<OrderLineItems> orderLineItemsList = new ArrayList<>();
 }

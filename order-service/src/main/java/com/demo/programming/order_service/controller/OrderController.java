@@ -18,6 +18,7 @@ import com.demo.programming.order_service.dto.OrderRequest;
 import com.demo.programming.order_service.dto.OrderResponse;
 import com.demo.programming.order_service.service.OrderService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -38,9 +39,8 @@ public class OrderController {
             @ApiResponse(responseCode = "400", description = "Invalid order request"),
             @ApiResponse(responseCode = "409", description = "Product not in stock")
     })
-    public String placeOrder(@RequestBody OrderRequest orderRequest) {
-        orderService.placeOrder(orderRequest);
-        return "Order placed successfully!";
+    public OrderResponse placeOrder(@Valid @RequestBody OrderRequest orderRequest) {
+        return orderService.placeOrder(orderRequest);
     }
 
     @GetMapping

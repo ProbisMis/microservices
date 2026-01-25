@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.demo.programming.order_service.dto.InventoryResponse;
 
-@FeignClient(name = "inventory-service")
+@FeignClient(name = "inventory-service", fallback = InventoryClientFallback.class)
 public interface InventoryClient {
 
     @GetMapping("/api/inventory")

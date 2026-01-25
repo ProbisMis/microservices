@@ -3,6 +3,7 @@ package com.demo.programming.product_service.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.demo.programming.exceptions.ResourceNotFoundException;
 import com.demo.programming.product_service.dto.ProductRequest;
@@ -20,29 +21,34 @@ public class ProductService {
 
     private final ProductRepository productRepository;
 
-    public void createProduct(ProductRequest productRequest) {
+    @Transactional
+    public ProductResponse createProduct(ProductRequest productRequest) {
         Product product = Product.builder()
                 .name(productRequest.getName())
                 .description(productRequest.getDescription())
                 .price(productRequest.getPrice())
                 .build();
 
-        productRepository.save(product);
-        log.info("Product {} is saved", product.getId());
+        Product savedProduct = productRepository.save(product);
+        log.info("Product {} is saved", savedProduct.getId());
+        return mapToProductResponse(savedProduct);
     }
 
+    @Transactional(readOnly = true)
     public List<ProductResponse> getAllProducts() {
         return productRepository.findAll().stream()
                 .map(this::mapToProductResponse)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public ProductResponse getProductById(String id) {
         return productRepository.findById(id)
                 .map(this::mapToProductResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id));
     }
 
+    @Transactional
     public ProductResponse updateProduct(String id, ProductRequest productRequest) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id));
@@ -57,6 +63,7 @@ public class ProductService {
         return mapToProductResponse(updatedProduct);
     }
 
+    @Transactional
     public void deleteProduct(String id) {
         if (!productRepository.existsById(id)) {
             throw new ResourceNotFoundException("Product", "id", id);

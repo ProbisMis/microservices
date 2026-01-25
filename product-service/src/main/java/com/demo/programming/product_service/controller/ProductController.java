@@ -20,12 +20,13 @@ import com.demo.programming.product_service.dto.ProductRequest;
 import com.demo.programming.product_service.dto.ProductResponse;
 import com.demo.programming.product_service.service.ProductService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("api/product")
+@RequestMapping("/api/product")
 @RequiredArgsConstructor
 @Tag(name = "Product", description = "Product management APIs")
 public class ProductController {
@@ -39,8 +40,8 @@ public class ProductController {
             @ApiResponse(responseCode = "201", description = "Product created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input")
     })
-    public void createProduct(@RequestBody ProductRequest productRequest) {
-        productService.createProduct(productRequest);
+    public ProductResponse createProduct(@Valid @RequestBody ProductRequest productRequest) {
+        return productService.createProduct(productRequest);
     }
 
     @GetMapping
@@ -77,7 +78,7 @@ public class ProductController {
     public ProductResponse updateProduct(
             @Parameter(description = "Product ID", required = true)
             @PathVariable String id,
-            @RequestBody ProductRequest productRequest) {
+            @Valid @RequestBody ProductRequest productRequest) {
         return productService.updateProduct(id, productRequest);
     }
 

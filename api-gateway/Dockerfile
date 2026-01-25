@@ -15,4 +15,4 @@ COPY --from=builder /app/snapshot-dependencies/ ./
 COPY --from=builder /app/application/ ./
 
 EXPOSE 9000
-ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher", "--spring.profiles.active=docker"]
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]

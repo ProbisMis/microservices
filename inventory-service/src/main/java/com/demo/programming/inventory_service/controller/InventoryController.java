@@ -24,6 +24,7 @@ import com.demo.programming.inventory_service.dto.InventoryRequest;
 import com.demo.programming.inventory_service.dto.InventoryResponse;
 import com.demo.programming.inventory_service.service.InventoryService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -76,7 +77,7 @@ public class InventoryController {
             @ApiResponse(responseCode = "201", description = "Inventory created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input or inventory already exists")
     })
-    public InventoryResponse addInventory(@RequestBody InventoryRequest inventoryRequest) {
+    public InventoryResponse addInventory(@Valid @RequestBody InventoryRequest inventoryRequest) {
         return inventoryService.addInventory(inventoryRequest);
     }
 

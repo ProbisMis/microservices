@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
-import java.util.ArrayList;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -22,6 +22,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.demo.programming.exceptions.InsufficientStockException;
+import com.demo.programming.exceptions.ResourceNotFoundException;
 import com.demo.programming.order_service.client.InventoryClient;
 import com.demo.programming.order_service.dto.InventoryResponse;
 import com.demo.programming.order_service.dto.OrderLineItemsDto;
@@ -52,13 +54,13 @@ class OrderServiceTest {
         lineItem1 = new OrderLineItemsDto();
         lineItem1.setId(1L);
         lineItem1.setSkuCode("SKU-001");
-        lineItem1.setPrice(99.99);
+        lineItem1.setPrice(new BigDecimal("99.99"));
         lineItem1.setQuantity(2);
 
         lineItem2 = new OrderLineItemsDto();
         lineItem2.setId(2L);
         lineItem2.setSkuCode("SKU-002");
-        lineItem2.setPrice(49.99);
+        lineItem2.setPrice(new BigDecimal("49.99"));
         lineItem2.setQuantity(1);
 
         orderRequest = new OrderRequest();
@@ -134,10 +136,10 @@ class OrderServiceTest {
 
             Order savedOrder = orderCaptor.getValue();
             assertThat(savedOrder.getOrderLineItemsList().get(0).getSkuCode()).isEqualTo("SKU-001");
-            assertThat(savedOrder.getOrderLineItemsList().get(0).getPrice()).isEqualTo(99.99);
+            assertThat(savedOrder.getOrderLineItemsList().get(0).getPrice()).isEqualByComparingTo(new BigDecimal("99.99"));
             assertThat(savedOrder.getOrderLineItemsList().get(0).getQuantity()).isEqualTo(2);
             assertThat(savedOrder.getOrderLineItemsList().get(1).getSkuCode()).isEqualTo("SKU-002");
-            assertThat(savedOrder.getOrderLineItemsList().get(1).getPrice()).isEqualTo(49.99);
+            assertThat(savedOrder.getOrderLineItemsList().get(1).getPrice()).isEqualByComparingTo(new BigDecimal("49.99"));
             assertThat(savedOrder.getOrderLineItemsList().get(1).getQuantity()).isEqualTo(1);
         }
 
@@ -200,8 +202,8 @@ class OrderServiceTest {
 
             // When & Then
             assertThatThrownBy(() -> orderService.placeOrder(orderRequest))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Product is not in stock, please try again later");
+                    .isInstanceOf(InsufficientStockException.class)
+                    .hasMessageContaining("Insufficient stock for SKU codes");
 
             verify(orderRepository, never()).save(any(Order.class));
         }
@@ -218,8 +220,8 @@ class OrderServiceTest {
 
             // When & Then
             assertThatThrownBy(() -> orderService.placeOrder(orderRequest))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Product is not in stock, please try again later");
+                    .isInstanceOf(InsufficientStockException.class)
+                    .hasMessageContaining("Insufficient stock for SKU codes");
 
             verify(orderRepository, never()).save(any(Order.class));
         }
@@ -232,8 +234,8 @@ class OrderServiceTest {
 
             // When & Then
             assertThatThrownBy(() -> orderService.placeOrder(orderRequest))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Product is not in stock, please try again later");
+                    .isInstanceOf(InsufficientStockException.class)
+                    .hasMessageContaining("Insufficient stock for SKU codes");
 
             verify(orderRepository, never()).save(any(Order.class));
         }
@@ -246,8 +248,8 @@ class OrderServiceTest {
 
             // When & Then
             assertThatThrownBy(() -> orderService.placeOrder(orderRequest))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Product is not in stock, please try again later");
+                    .isInstanceOf(InsufficientStockException.class)
+                    .hasMessageContaining("Insufficient stock for SKU codes");
 
             verify(orderRepository, never()).save(any(Order.class));
         }
@@ -258,7 +260,7 @@ class OrderServiceTest {
             // Given
             OrderLineItemsDto lineItem3 = new OrderLineItemsDto();
             lineItem3.setSkuCode("SKU-003");
-            lineItem3.setPrice(29.99);
+            lineItem3.setPrice(new BigDecimal("29.99"));
             lineItem3.setQuantity(5);
             orderRequest.setOrderLineItemsDtoList(Arrays.asList(lineItem1, lineItem2, lineItem3));
 
@@ -271,7 +273,7 @@ class OrderServiceTest {
 
             // When & Then
             assertThatThrownBy(() -> orderService.placeOrder(orderRequest))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(InsufficientStockException.class);
 
             verify(orderRepository, never()).save(any(Order.class));
         }
@@ -287,7 +289,7 @@ class OrderServiceTest {
             // Given
             OrderLineItemsDto zeroQuantityItem = new OrderLineItemsDto();
             zeroQuantityItem.setSkuCode("SKU-ZERO");
-            zeroQuantityItem.setPrice(10.00);
+            zeroQuantityItem.setPrice(new BigDecimal("10.00"));
             zeroQuantityItem.setQuantity(0);
             orderRequest.setOrderLineItemsDtoList(Collections.singletonList(zeroQuantityItem));
 
@@ -312,7 +314,7 @@ class OrderServiceTest {
             // Given
             OrderLineItemsDto highQuantityItem = new OrderLineItemsDto();
             highQuantityItem.setSkuCode("SKU-BULK");
-            highQuantityItem.setPrice(5.00);
+            highQuantityItem.setPrice(new BigDecimal("5.00"));
             highQuantityItem.setQuantity(10000);
             orderRequest.setOrderLineItemsDtoList(Collections.singletonList(highQuantityItem));
 
@@ -335,7 +337,7 @@ class OrderServiceTest {
             // Given
             OrderLineItemsDto freeItem = new OrderLineItemsDto();
             freeItem.setSkuCode("SKU-FREE");
-            freeItem.setPrice(0.0);
+            freeItem.setPrice(BigDecimal.ZERO);
             freeItem.setQuantity(1);
             orderRequest.setOrderLineItemsDtoList(Collections.singletonList(freeItem));
 
@@ -351,7 +353,7 @@ class OrderServiceTest {
             // Then
             ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
             verify(orderRepository).save(orderCaptor.capture());
-            assertThat(orderCaptor.getValue().getOrderLineItemsList().get(0).getPrice()).isEqualTo(0.0);
+            assertThat(orderCaptor.getValue().getOrderLineItemsList().get(0).getPrice()).isEqualByComparingTo(BigDecimal.ZERO);
         }
     }
 
@@ -363,8 +365,8 @@ class OrderServiceTest {
         @DisplayName("Should return all orders")
         void shouldReturnAllOrders() {
             // Given
-            Order order1 = createOrder(1L, "order-123", "SKU-001", 99.99, 2);
-            Order order2 = createOrder(2L, "order-456", "SKU-002", 49.99, 1);
+            Order order1 = createOrder(1L, "order-123", "SKU-001", new BigDecimal("99.99"), 2);
+            Order order2 = createOrder(2L, "order-456", "SKU-002", new BigDecimal("49.99"), 1);
 
             when(orderRepository.findAll()).thenReturn(Arrays.asList(order1, order2));
 
@@ -400,8 +402,8 @@ class OrderServiceTest {
             order.setId(1L);
             order.setOrderNumber("order-multi");
 
-            OrderLineItems item1 = new OrderLineItems(1L, "SKU-001", 99.99, 2);
-            OrderLineItems item2 = new OrderLineItems(2L, "SKU-002", 49.99, 1);
+            OrderLineItems item1 = new OrderLineItems(1L, "SKU-001", new BigDecimal("99.99"), 2);
+            OrderLineItems item2 = new OrderLineItems(2L, "SKU-002", new BigDecimal("49.99"), 1);
             order.getOrderLineItemsList().add(item1);
             order.getOrderLineItemsList().add(item2);
 
@@ -426,7 +428,7 @@ class OrderServiceTest {
         @DisplayName("Should return order when found by order number")
         void shouldReturnOrderWhenFoundByOrderNumber() {
             // Given
-            Order order = createOrder(1L, "order-123", "SKU-001", 99.99, 2);
+            Order order = createOrder(1L, "order-123", "SKU-001", new BigDecimal("99.99"), 2);
             when(orderRepository.findByOrderNumber("order-123")).thenReturn(Optional.of(order));
 
             // When
@@ -447,8 +449,9 @@ class OrderServiceTest {
 
             // When & Then
             assertThatThrownBy(() -> orderService.getOrderByOrderNumber("non-existent"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Order not found with orderNumber: non-existent");
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Order")
+                    .hasMessageContaining("non-existent");
         }
 
         @Test
@@ -459,7 +462,7 @@ class OrderServiceTest {
             order.setId(1L);
             order.setOrderNumber("test-order-uuid");
 
-            OrderLineItems item = new OrderLineItems(1L, "SKU-TEST", 150.00, 3);
+            OrderLineItems item = new OrderLineItems(1L, "SKU-TEST", new BigDecimal("150.00"), 3);
             order.getOrderLineItemsList().add(item);
 
             when(orderRepository.findByOrderNumber("test-order-uuid")).thenReturn(Optional.of(order));
@@ -472,12 +475,12 @@ class OrderServiceTest {
             assertThat(result.getOrderNumber()).isEqualTo("test-order-uuid");
             assertThat(result.getOrderLineItemsDtoList()).hasSize(1);
             assertThat(result.getOrderLineItemsDtoList().get(0).getSkuCode()).isEqualTo("SKU-TEST");
-            assertThat(result.getOrderLineItemsDtoList().get(0).getPrice()).isEqualTo(150.00);
+            assertThat(result.getOrderLineItemsDtoList().get(0).getPrice()).isEqualByComparingTo(new BigDecimal("150.00"));
             assertThat(result.getOrderLineItemsDtoList().get(0).getQuantity()).isEqualTo(3);
         }
     }
 
-    private Order createOrder(Long id, String orderNumber, String skuCode, Double price, Integer quantity) {
+    private Order createOrder(Long id, String orderNumber, String skuCode, BigDecimal price, Integer quantity) {
         Order order = new Order();
         order.setId(id);
         order.setOrderNumber(orderNumber);

@@ -18,42 +18,52 @@ import com.demo.programming.order_service.model.OrderLineItems;
 import com.demo.programming.order_service.repository.OrderRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService {
 
     private final OrderRepository orderRepository;
     private final InventoryClient inventoryClient;
 
     @Transactional
-    public void placeOrder(OrderRequest orderRequest) {
+    public OrderResponse placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
 
-        orderRequest.getOrderLineItemsDtoList()
+        List<OrderLineItems> lineItems = orderRequest.getOrderLineItemsDtoList()
             .stream()
             .map(this::mapToEntity)
-            .forEach(orderLineItems -> order.getOrderLineItemsList().add(orderLineItems));
+            .toList();
+        order.getOrderLineItemsList().addAll(lineItems);
 
-        var skuCodes = order.getOrderLineItemsList()
-            .stream()
+        List<String> skuCodes = lineItems.stream()
             .map(OrderLineItems::getSkuCode)
             .toList();
 
-        var result = inventoryClient.isInStock(skuCodes);
+        log.info("Checking inventory for SKU codes: {}", skuCodes);
+        List<InventoryResponse> inventoryResponses = inventoryClient.isInStock(skuCodes);
 
-        if (result != null && !result.isEmpty() && result.stream().allMatch(InventoryResponse::isInStock)) {
-            orderRepository.save(order);
-        } else {
-            List<String> outOfStockSkuCodes = result == null || result.isEmpty()
-                    ? skuCodes
-                    : result.stream()
-                            .filter(r -> !r.isInStock())
-                            .map(InventoryResponse::getSkuCode)
-                            .toList();
+        if (inventoryResponses == null || inventoryResponses.isEmpty()) {
+            log.warn("Inventory service returned empty response for SKU codes: {}", skuCodes);
+            throw new InsufficientStockException(skuCodes);
+        }
+
+        boolean allInStock = inventoryResponses.stream().allMatch(InventoryResponse::isInStock);
+        if (!allInStock) {
+            List<String> outOfStockSkuCodes = inventoryResponses.stream()
+                    .filter(r -> !r.isInStock())
+                    .map(InventoryResponse::getSkuCode)
+                    .toList();
+            log.warn("Items out of stock: {}", outOfStockSkuCodes);
             throw new InsufficientStockException(outOfStockSkuCodes);
         }
+
+        Order savedOrder = orderRepository.save(order);
+        log.info("Order placed successfully with order number: {}", savedOrder.getOrderNumber());
+        return mapToResponse(savedOrder);
     }
 
     @Transactional(readOnly = true)

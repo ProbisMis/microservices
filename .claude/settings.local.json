@@ -16,7 +16,11 @@
       "Bash(git commit:*)",
       "Bash(mvn test-compile:*)",
       "Bash(bash scripts/ralph/ralph.sh:*)",
-      "Bash(claude)"
+      "Bash(claude)",
+      "mcp__ide__getDiagnostics",
+      "Bash(mvn install:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)"
     ]
   },
   "enabledMcpjsonServers": [
