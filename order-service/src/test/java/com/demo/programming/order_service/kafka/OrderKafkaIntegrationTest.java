@@ -229,7 +229,7 @@ class OrderKafkaIntegrationTest {
 
             OrderLineItems lineItem = new OrderLineItems();
             lineItem.setSkuCode("TEST-SKU-001");
-            lineItem.setPrice(100.0);
+            lineItem.setPrice(BigDecimal.valueOf(100.0));
             lineItem.setQuantity(2);
             order.getOrderLineItemsList().add(lineItem);
 
@@ -273,7 +273,7 @@ class OrderKafkaIntegrationTest {
 
         OrderLineItems lineItem = new OrderLineItems();
         lineItem.setSkuCode("TEST-SKU-001");
-        lineItem.setPrice(100.0);
+        lineItem.setPrice(BigDecimal.valueOf(100.0));
         lineItem.setQuantity(2);
         order.getOrderLineItemsList().add(lineItem);
 

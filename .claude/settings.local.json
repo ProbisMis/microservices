@@ -20,7 +20,8 @@
       "mcp__ide__getDiagnostics",
       "Bash(mvn install:*)",
       "Bash(grep:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(cd:*)"
     ]
   },
   "enabledMcpjsonServers": [

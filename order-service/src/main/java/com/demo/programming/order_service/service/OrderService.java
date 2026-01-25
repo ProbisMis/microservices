@@ -56,7 +56,8 @@ public class OrderService {
 
         if (result != null && !result.isEmpty() && result.stream().allMatch(InventoryResponse::isInStock)) {
             order.setStatus(OrderStatus.CONFIRMED);
-            orderRepository.save(order);
+            Order savedOrder = orderRepository.save(order);
+            return mapToResponse(savedOrder);
         } else {
             throw new IllegalArgumentException("Product is not in stock, please try again later");
         }
@@ -118,24 +119,6 @@ public class OrderService {
         log.info("Order {} rejected: {}", orderNumber, reason);
 
         orderEventProducer.publishOrderRejected(orderNumber, reason);
-        if (inventoryResponses == null || inventoryResponses.isEmpty()) {
-            log.warn("Inventory service returned empty response for SKU codes: {}", skuCodes);
-            throw new InsufficientStockException(skuCodes);
-        }
-
-        boolean allInStock = inventoryResponses.stream().allMatch(InventoryResponse::isInStock);
-        if (!allInStock) {
-            List<String> outOfStockSkuCodes = inventoryResponses.stream()
-                    .filter(r -> !r.isInStock())
-                    .map(InventoryResponse::getSkuCode)
-                    .toList();
-            log.warn("Items out of stock: {}", outOfStockSkuCodes);
-            throw new InsufficientStockException(outOfStockSkuCodes);
-        }
-
-        Order savedOrder = orderRepository.save(order);
-        log.info("Order placed successfully with order number: {}", savedOrder.getOrderNumber());
-        return mapToResponse(savedOrder);
     }
 
     @Transactional(readOnly = true)
@@ -163,7 +146,7 @@ public class OrderService {
     private OrderLineItemEvent mapToOrderLineItemEvent(OrderLineItems orderLineItems) {
         return OrderLineItemEvent.builder()
                 .skuCode(orderLineItems.getSkuCode())
-                .price(orderLineItems.getPrice() != null ? BigDecimal.valueOf(orderLineItems.getPrice()) : null)
+                .price(orderLineItems.getPrice())
                 .quantity(orderLineItems.getQuantity())
                 .build();
     }
@@ -192,5 +175,4 @@ public class OrderService {
         dto.setQuantity(orderLineItems.getQuantity());
         return dto;
     }
-
 }
