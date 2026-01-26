@@ -266,6 +266,86 @@ class OrderKafkaIntegrationTest {
         }
     }
 
+    @Test
+    void whenInventoryEventReceivedForNonExistentOrder_shouldHandleGracefully() throws Exception {
+        // Given: no order exists for this order number
+        String nonExistentOrderNumber = UUID.randomUUID().toString();
+
+        // Wait for Spring consumer to be fully initialized and subscribed
+        Thread.sleep(3000);
+
+        // When: InventoryReservedEvent is sent for non-existent order
+        InventoryReservedEvent event = InventoryReservedEvent.create(nonExistentOrderNumber);
+        producer.send(new ProducerRecord<>("inventory.reserved", nonExistentOrderNumber, event));
+        producer.flush();
+
+        // Then: No exception should be thrown, event should be processed gracefully
+        // Wait a bit for the consumer to process (or fail gracefully)
+        Thread.sleep(5000);
+
+        // Verify no order was created (graceful handling, not crash)
+        assertThat(orderRepository.findByOrderNumber(nonExistentOrderNumber)).isEmpty();
+    }
+
+    @Test
+    void whenDuplicateInventoryReservedEvent_shouldBeIdempotent() throws Exception {
+        // Given: an order in PENDING status
+        String orderNumber = UUID.randomUUID().toString();
+        Order order = createAndSaveOrder(orderNumber, OrderStatus.PENDING);
+
+        // Wait for Spring consumer to be fully initialized and subscribed
+        Thread.sleep(3000);
+
+        // When: Same InventoryReservedEvent is sent twice
+        InventoryReservedEvent event = InventoryReservedEvent.create(orderNumber);
+        producer.send(new ProducerRecord<>("inventory.reserved", orderNumber, event));
+        producer.flush();
+
+        // Wait for first event to be processed
+        await().atMost(15, TimeUnit.SECONDS)
+                .pollInterval(500, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
+                    entityManager.clear();
+                    Order updatedOrder = orderRepository.findByOrderNumber(orderNumber).orElseThrow();
+                    assertThat(updatedOrder.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+                });
+
+        // Send duplicate event
+        producer.send(new ProducerRecord<>("inventory.reserved", orderNumber, event));
+        producer.flush();
+
+        // Wait a bit for duplicate to be processed
+        Thread.sleep(3000);
+
+        // Then: Order should still be CONFIRMED (idempotent - no error, status unchanged)
+        entityManager.clear();
+        Order finalOrder = orderRepository.findByOrderNumber(orderNumber).orElseThrow();
+        assertThat(finalOrder.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+    }
+
+    @Test
+    void whenOrderAlreadyConfirmed_shouldNotReconfirm() throws Exception {
+        // Given: an order already in CONFIRMED status
+        String orderNumber = UUID.randomUUID().toString();
+        Order order = createAndSaveOrder(orderNumber, OrderStatus.CONFIRMED);
+
+        // Wait for Spring consumer to be fully initialized and subscribed
+        Thread.sleep(3000);
+
+        // When: InventoryReservedEvent is sent for already confirmed order
+        InventoryReservedEvent event = InventoryReservedEvent.create(orderNumber);
+        producer.send(new ProducerRecord<>("inventory.reserved", orderNumber, event));
+        producer.flush();
+
+        // Wait a bit for event to be processed
+        Thread.sleep(5000);
+
+        // Then: Order should remain CONFIRMED (idempotent behavior)
+        entityManager.clear();
+        Order finalOrder = orderRepository.findByOrderNumber(orderNumber).orElseThrow();
+        assertThat(finalOrder.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+    }
+
     private Order createAndSaveOrder(String orderNumber, OrderStatus status) {
         Order order = new Order();
         order.setOrderNumber(orderNumber);
